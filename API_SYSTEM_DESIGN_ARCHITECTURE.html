@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>System Design & API Architecture Flow - CampusClubOS SaaS</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: radial-gradient(circle at 10% 10%, #0f172a 0%, #020617 100%);
+      color: #f1f5f9;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+    }
+    .badge-get { background: #0284c7; color: white; }
+    .badge-post { background: #16a34a; color: white; }
+    .badge-put { background: #d97706; color: white; }
+    .badge-delete { background: #dc2626; color: white; }
+    .neon-border-blue { border-color: rgba(59, 130, 246, 0.4); box-shadow: 0 0 25px rgba(59, 130, 246, 0.15); }
+    .neon-border-purple { border-color: rgba(168, 85, 247, 0.4); box-shadow: 0 0 25px rgba(168, 85, 247, 0.15); }
+    .neon-border-emerald { border-color: rgba(16, 185, 129, 0.4); box-shadow: 0 0 25px rgba(16, 185, 129, 0.15); }
+    .mermaid {
+      background: rgba(2, 6, 23, 0.6);
+      border-radius: 1.25rem;
+      padding: 1.5rem;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+  </style>
+</head>
+<body class="p-4 sm:p-8 md:p-12 max-w-7xl mx-auto min-h-screen">
+
+  <!-- HEADER -->
+  <header class="text-center mb-12">
+    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest mb-4">
+      <span>⚡ Multi-Tenant Campus SaaS Architecture</span>
+    </div>
+    <h1 class="text-3xl sm:text-5xl font-black tracking-tight text-white mb-3">
+      Complete System Design & <span class="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">API Request Lifecycle</span>
+    </h1>
+    <p class="text-slate-400 text-sm sm:text-base max-w-2xl mx-auto">
+      Visual representation of how every API request, middleware, database layer, QR pass verification, and certificate engine operates in this SaaS platform.
+    </p>
+  </header>
+
+  <!-- 1. FULL REQUEST PIPELINE DIAGRAM -->
+  <section class="glass-card rounded-3xl p-6 sm:p-8 mb-10 neon-border-blue">
+    <h2 class="text-xl sm:text-2xl font-black text-white mb-2 flex items-center gap-3">
+      <span class="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center text-sm font-mono">01</span>
+      End-to-End API Architecture & Request Pipeline
+    </h2>
+    <p class="text-slate-400 text-xs sm:text-sm mb-6">How a request flows from the client to the database through security & tenant isolation layers.</p>
+    
+    <div class="mermaid">
+flowchart TD
+    subgraph CLIENT_LAYER ["1. Client & Actor Layer (React 18 SPA)"]
+        A1["👨‍🎓 Students / Attendees<br>(Mobile / Web Browser)"]
+        A2["🛡️ Club Organizers<br>(Admin Dashboard)"]
+        A3["👑 Campus Super Admin<br>(Governance Console)"]
+        A4["📸 Gate Volunteers<br>(Camera QR Scanner PWA)"]
+    end
+
+    subgraph API_GATEWAY ["2. API Gateway & Security Layer (Express.js)"]
+        GW["Express Router & HTTP Server<br>(Port 5000)"]
+        M_CORS["CORS Policy & Body Parsers<br>(25MB payload limit for Cert images)"]
+        M_AUTH["Auth Middleware<br>(Argon2 Hash + JWT Bearer Token)"]
+        M_TENANT["Tenant Resolution Middleware<br>(Resolves req.tenant by slug)"]
+    end
+
+    subgraph MICRO_ROUTERS ["3. Core API Route Handlers"]
+        R_TENANTS["🏢 /api/tenants<br>• Create Club Tenant<br>• Fetch Active Clubs<br>• Public Directory"]
+        R_EVENTS["📅 /api/club/:slug/events<br>• List Active Events<br>• Create & Update Event<br>• Capacity Validation"]
+        R_REG["🎟️ /api/club/:slug/registrations<br>• Register Pass (Razorpay)<br>• Issue A4 Certificate<br>• Custom Template Engine"]
+        R_SCAN["🔍 /api/club/:slug/scanner<br>• Realtime QR Validation<br>• Anti-Duplicate Entry Lock<br>• Check-in Timestamp"]
+        R_SUPER["👑 /api/super-admin<br>• Cross-Club Analytics<br>• Suspend / Reset Password<br>• Master Cert Registry"]
+    end
+
+    subgraph DATA_STORAGE ["4. Database & External Services"]
+        DB[("MongoDB Atlas Database<br>(Tenant Discriminator Pattern)")]
+        MAIL["📧 Nodemailer SMTP<br>(High-Res A4 Vector SVGs)"]
+        PAY["💳 Razorpay Gateway<br>(Instant Verification Webhook)"]
+    end
+
+    A1 -->|Browse / Register| GW
+    A2 -->|Manage Club & Certs| GW
+    A3 -->|Govern Workspaces| GW
+    A4 -->|Scan QR Passcode| GW
+
+    GW --> M_CORS --> M_AUTH --> M_TENANT
+
+    M_TENANT --> R_TENANTS
+    M_TENANT --> R_EVENTS
+    M_TENANT --> R_REG
+    M_TENANT --> R_SCAN
+    M_TENANT --> R_SUPER
+
+    R_TENANTS & R_EVENTS & R_REG & R_SCAN & R_SUPER --> DB
+    R_REG --> MAIL
+    R_REG --> PAY
+    </div>
+  </section>
+
+  <!-- 2. CORE WORKFLOW VISUALIZATIONS (2 COLS) -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+    
+    <!-- Gate Pass Scanner Flow -->
+    <div class="glass-card rounded-3xl p-6 sm:p-8 neon-border-emerald">
+      <h3 class="text-lg sm:text-xl font-bold text-white mb-2 flex items-center gap-2.5">
+        <span class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-mono">02</span>
+        Real-Time Gate Pass Verification Flow
+      </h3>
+      <p class="text-slate-400 text-xs mb-4">Prevents screenshot sharing and duplicate entries at college auditoriums.</p>
+      
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor S as Student
+    actor V as Gate Volunteer
+    participant API as /api/.../scanner/validate
+    participant DB as MongoDB
+
+    S->>V: Shows Mobile QR Pass
+    V->>API: Camera scans & sends Passcode
+    API->>DB: Find Registration by Token & Tenant
+    alt Already Scanned (Duplicate Fraud)
+        DB-->>API: checkedIn: true at 10:15 AM
+        API-->>V: ❌ 400 Bad Request: "Already Checked In"
+    else Valid Pass
+        API->>DB: Atomic Update: checkedIn=true, checkedInAt=NOW
+        DB-->>API: Update Success
+        API-->>V: ✅ 200 OK: "Entry Granted (Seat Confirmed)"
+    end
+      </div>
+    </div>
+
+    <!-- Dynamic Vector Certificate Engine Flow -->
+    <div class="glass-card rounded-3xl p-6 sm:p-8 neon-border-purple">
+      <h3 class="text-lg sm:text-xl font-bold text-white mb-2 flex items-center gap-2.5">
+        <span class="w-7 h-7 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center text-xs font-mono">03</span>
+        Dynamic Vector Certificate Engine Flow
+      </h3>
+      <p class="text-slate-400 text-xs mb-4">Custom template upload, vector signature injection, and email delivery.</p>
+      
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Admin as Club Organizer
+    participant UI as Club Dashboard
+    participant API as /api/.../certificate-settings
+    participant Engine as SVG Vector Engine
+    actor Student as Student Inbox
+
+    Admin->>UI: Uploads Custom Certificate Frame + Signatures
+    UI->>API: PUT /certificate-settings (Save Template)
+    Admin->>UI: Clicks "Issue Certificate" for verified attendee
+    UI->>Engine: Generate A4 SVG (1414 x 1000 Ratio)
+    Engine->>Engine: Injects Student Name, Hash, Gold Seal & Signatures
+    Engine->>Student: Dispatches standalone Email attachment
+    Student->>UI: Views / Prints Standard A4 Certificate
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. DETAILED API REFERENCE TABLE -->
+  <section class="glass-card rounded-3xl p-6 sm:p-8 mb-10">
+    <h2 class="text-xl sm:text-2xl font-black text-white mb-2 flex items-center gap-3">
+      <span class="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center text-sm font-mono">04</span>
+      Complete REST API Endpoints Matrix
+    </h2>
+    <p class="text-slate-400 text-xs sm:text-sm mb-6">Detailed overview of all endpoints, authentication requirements, and payloads across the platform.</p>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs sm:text-sm">
+        <thead>
+          <tr class="border-b border-white/10 text-slate-400 font-mono uppercase text-[11px]">
+            <th class="py-3 px-4">Method</th>
+            <th class="py-3 px-4">Endpoint</th>
+            <th class="py-3 px-4">Auth Level</th>
+            <th class="py-3 px-4">Description & Functionality</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-white/5 font-mono">
+          <!-- Tenants -->
+          <tr class="hover:bg-white/5 transition">
+            <td class="py-3 px-4"><span class="px-2 py-0.5 rounded-md text-[10px] font-bold badge-get">GET</span></td>
+            <td class="py-3 px-4 text-blue-400">/api/tenants</td>
+            <td class="py-3 px-4 text-slate-400">Public</td>
+            <td class="py-3 px-4 text-slate-300 font-sans">Lists all active campus clubs for directory & search.</td>
+          </tr>
+          <tr class="hover:bg-white/5 transition">
+            <td class="py-3 px-4"><span class="px-2 py-0.5 rounded-md text-[10px] font-bold badge-post">POST</span></td>
+            <td class="py-3 px-4 text-emerald-400">/api/tenants</td>
+            <td class="py-3 px-4 text-slate-400">Public / Admin</td>
+            <td class="py-3 px-4 text-slate-300 font-sans">Provisions a new club workspace, theme colors, and admin credentials.</td>
+          </tr>
+
+          <!-- Events -->
+          <tr class="hover:bg-white/5 transition">
+            <td class="py-3 px-4"><span class="px-2 py-0.5 rounded-md text-[10px] font-bold badge-get">GET</span></td>
+            <td class="py-3 px-4 text-blue-400">/api/club/:slug/events</td>
+            <td class="py-3 px-4 text-slate-400">Public</td>
+            <td class="py-3 px-4 text-slate-300 font-sans">Fetches published events with live seat capacity & ticket pricing.</td>
+          </tr>
+          <tr class="hover:bg-white/5 transition">
+            <td class="py-3 px-4"><span class="px-2 py-0.5 rounded-md text-[10px] font-bold badge-post">POST</span></td>
+            <td class="py-3 px-4 text-emerald-400">/api/club/:slug/events</td>
+            <td class="py-3 px-4 text-amber-400">Club Admin (JWT)</td>
+            <td class="py-3 px-4 text-slate-300 font-sans">Creates a new campus event with venue, date, price, and deadline.</td>
+          </tr>
+
+          <!-- Registrations & Scanner -->
+          <tr class="hover:bg-white/5 transition">
+            <td class="py-3 px-4"><span class="px-2 py-0.5 rounded-md text-[10px] font-bold badge-post">POST</span></td>
+            <td class="py-3 px-4 text-emerald-400">/api/club/:slug/registrations</td>
+            <td class="py-3 px-4 text-slate-400">Public (Students)</td>
+            <td class="py-3 px-4 text-slate-300 font-sans">Books entry pass, generates encrypted QR, and sends email pass.</td>
+          </tr>
+          <tr class="hover:bg-white/5 transition">
+            <td class="py-3 px-4"><span class="px-2 py-0.5 rounded-md text-[10px] font-bold badge-post">POST</span></td>
+            <td class="py-3 px-4 text-emerald-400">/api/club/:slug/scanner/validate</td>
+            <td class="py-3 px-4 text-amber-400">Club Admin (JWT)</td>
+            <td class="py-3 px-4 text-slate-300 font-sans">Scans & verifies gate QR pass in real-time, preventing duplicates.</td>
+          </tr>
+
+          <!-- Certificate Engine -->
+          <tr class="hover:bg-white/5 transition">
+            <td class="py-3 px-4"><span class="px-2 py-0.5 rounded-md text-[10px] font-bold badge-get">GET</span></td>
+            <td class="py-3 px-4 text-blue-400">/api/club/:slug/certificate-settings</td>
+            <td class="py-3 px-4 text-amber-400">Club Admin (JWT)</td>
+            <td class="py-3 px-4 text-slate-300 font-sans">Retrieves custom certificate template frame, signatories, and styling.</td>
+          </tr>
+          <tr class="hover:bg-white/5 transition">
+            <td class="py-3 px-4"><span class="px-2 py-0.5 rounded-md text-[10px] font-bold badge-put">PUT</span></td>
+            <td class="py-3 px-4 text-amber-400">/api/club/:slug/certificate-settings</td>
+            <td class="py-3 px-4 text-amber-400">Club Admin (JWT)</td>
+            <td class="py-3 px-4 text-slate-300 font-sans">Saves custom uploaded background image, dynamic signatories, and seal.</td>
+          </tr>
+          <tr class="hover:bg-white/5 transition">
+            <td class="py-3 px-4"><span class="px-2 py-0.5 rounded-md text-[10px] font-bold badge-post">POST</span></td>
+            <td class="py-3 px-4 text-emerald-400">/api/club/:slug/registrations/:id/send-certificate</td>
+            <td class="py-3 px-4 text-amber-400">Club Admin (JWT)</td>
+            <td class="py-3 px-4 text-slate-300 font-sans">Renders high-resolution vector SVG certificate and emails directly to attendee.</td>
+          </tr>
+
+          <!-- Super Admin -->
+          <tr class="hover:bg-white/5 transition">
+            <td class="py-3 px-4"><span class="px-2 py-0.5 rounded-md text-[10px] font-bold badge-get">GET</span></td>
+            <td class="py-3 px-4 text-blue-400">/api/super-admin/dashboard</td>
+            <td class="py-3 px-4 text-purple-400">Super Admin (JWT)</td>
+            <td class="py-3 px-4 text-slate-300 font-sans">Aggregates campus-wide revenue, leaderboard, and department metrics.</td>
+          </tr>
+          <tr class="hover:bg-white/5 transition">
+            <td class="py-3 px-4"><span class="px-2 py-0.5 rounded-md text-[10px] font-bold badge-put">PUT</span></td>
+            <td class="py-3 px-4 text-amber-400">/api/super-admin/tenants/:id/status</td>
+            <td class="py-3 px-4 text-purple-400">Super Admin (JWT)</td>
+            <td class="py-3 px-4 text-slate-300 font-sans">Instantly activates or suspends any college club tenant workspace.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 4. DATABASE ENTITY RELATIONSHIP DIAGRAM (ERD) -->
+  <section class="glass-card rounded-3xl p-6 sm:p-8 mb-12">
+    <h2 class="text-xl sm:text-2xl font-black text-white mb-2 flex items-center gap-3">
+      <span class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm font-mono">05</span>
+      Multi-Tenant Database Entity Relationship Model (ERD)
+    </h2>
+    <p class="text-slate-400 text-xs sm:text-sm mb-6">How data entities correlate across tenant boundaries in MongoDB.</p>
+
+    <div class="mermaid">
+erDiagram
+    TENANT ||--o{ EVENT : hosts
+    TENANT ||--o{ USER : assigns_admin
+    TENANT ||--o{ REGISTRATION : isolates_data
+    EVENT ||--o{ REGISTRATION : receives_bookings
+
+    TENANT {
+        ObjectId _id PK
+        string name "Club Name"
+        string slug "Unique URL Identifier"
+        string primaryColor "Brand Color"
+        string certificateTemplateUrl "Custom A4 Frame Base64"
+        string signatory1Name "Signatory 1"
+        string signatory2Name "Signatory 2"
+        string status "ACTIVE | SUSPENDED"
+    }
+
+    USER {
+        ObjectId _id PK
+        ObjectId tenantId FK "Optional for SuperAdmin"
+        string username
+        string email
+        string passwordHash "Argon2 / Bcrypt"
+        string role "SUPER_ADMIN | CLUB_ADMIN"
+    }
+
+    EVENT {
+        ObjectId _id PK
+        ObjectId tenantId FK "Tenant Discriminator"
+        string title
+        number ticketPrice
+        number capacity
+        number registrationCount
+        date date
+        string location
+    }
+
+    REGISTRATION {
+        ObjectId _id PK
+        ObjectId tenantId FK "Tenant Discriminator"
+        ObjectId eventId FK
+        string userName
+        string userEmail
+        string passId "Unique Alpha-Numeric"
+        string qrCode "Base64 Cryptographic QR"
+        boolean checkedIn "Gate Check-In Status"
+        date checkedInAt "Gate Scan Timestamp"
+        boolean certificateIssued
+        string certificateHash "Anti-Fraud Code"
+    }
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="text-center text-xs text-slate-500 py-6 border-t border-white/5">
+    <p>© 2026 CampusClubOS SaaS • Production-Grade System Architecture & API Specification</p>
+  </footer>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      securityLevel: 'loose',
+      themeVariables: {
+        darkMode: true,
+        primaryColor: '#3b82f6',
+        primaryTextColor: '#f8fafc',
+        primaryBorderColor: '#60a5fa',
+        lineColor: '#94a3b8',
+        secondaryColor: '#8b5cf6',
+        tertiaryColor: '#10b981',
+        background: '#020617'
+      }
+    });
+  </script>
+</body>
+</html>
