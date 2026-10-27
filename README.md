@@ -52,13 +52,13 @@ Create a .env file in the backend/ directory:
 
 env
 PORT=5000
-MONGO_URI=your_mongodb_connection_string
-AUTH_JWT_SECRET=your_auth_jwt_secret
-PASS_JWT_SECRET=your_event_pass_secret
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_gmail_app_password
-RAZORPAY_KEY_ID=your_razorpay_key
-RAZORPAY_KEY_SECRET=your_razorpay_secret
+MONGO_URI=mongodb_connection_string
+AUTH_JWT_SECRET=auth_jwt_secret
+PASS_JWT_SECRET=event_pass_secret
+EMAIL_USER=email@gmail.com
+EMAIL_PASS=gmail_app_password
+RAZORPAY_KEY_ID=razorpay_key
+RAZORPAY_KEY_SECRET=razorpay_secret
 Run the backend server:
 
 bash
